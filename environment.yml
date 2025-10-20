@@ -1,0 +1,41 @@
+name: esm3_env
+channels:
+  - conda-forge
+  - bioconda
+  - nodefaults
+
+dependencies:
+  # Core Python
+  - python=3.10
+  - pip
+
+  # Scientific computing
+  - numpy
+  - pandas
+  - scipy
+  - scikit-learn
+  - matplotlib
+  - seaborn
+  - h5py
+  - pyyaml
+  - tqdm
+
+  # Bioinformatics
+  - biopython
+
+  # Jupyter
+  - jupyterlab
+  - ipykernel
+
+  # Data handling
+  - openpyxl
+  - requests
+  - jsonlines
+
+  # pip packages
+  - pip:
+      - esm
+      - huggingface-hub
+      - pyfaidx
+      - biopython
+      - faiss-gpu
