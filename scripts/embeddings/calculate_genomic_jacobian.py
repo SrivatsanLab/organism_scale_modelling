@@ -264,15 +264,18 @@ def plot_jacobian_heatmap(
     L_protein: int,
     L_dna_3: int
 ):
-    """Plot Jacobian matrix as heatmap with regions marked."""
+    """Plot Jacobian matrix as heatmap with regions marked and log10 scale."""
     fig, ax = plt.subplots(figsize=(14, 12))
 
+    # Apply log10 transform, adding small epsilon to avoid log(0)
+    jacobian_log = np.log10(jacobian + 1e-10)
+
     sns.heatmap(
-        jacobian,
+        jacobian_log,
         cmap='viridis',
         xticklabels=False,
         yticklabels=False,
-        cbar_kws={'label': 'Embedding Change Magnitude'},
+        cbar_kws={'label': 'log10(Embedding Change Magnitude)'},
         ax=ax
     )
 

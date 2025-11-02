@@ -233,15 +233,18 @@ def calculate_glm2_jacobian(model, tokenizer, sequence: str, device: str) -> np.
 
 
 def plot_jacobian_heatmap(jacobian: np.ndarray, output_path: Path, title: str, sequence: str):
-    """Plot Jacobian matrix as heatmap."""
+    """Plot Jacobian matrix as heatmap with log10 scale."""
     fig, ax = plt.subplots(figsize=(12, 10))
 
+    # Apply log10 transform, adding small epsilon to avoid log(0)
+    jacobian_log = np.log10(jacobian + 1e-10)
+
     sns.heatmap(
-        jacobian,
+        jacobian_log,
         cmap='viridis',
         xticklabels=False,
         yticklabels=False,
-        cbar_kws={'label': 'Embedding Change Magnitude'},
+        cbar_kws={'label': 'log10(Embedding Change Magnitude)'},
         ax=ax
     )
 
