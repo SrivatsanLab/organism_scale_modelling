@@ -67,8 +67,20 @@ python scripts/embeddings/get_esm_embeddings.py \
 
 ## Documentation
 
+📚 **[Complete Documentation Index](docs/index.md)**
+
+### Core Pipeline
+- **[Pipeline Overview](docs/README.md)** - Complete RefSeq clustering pipeline (29M proteins)
 - **[Gene Prediction Guide](docs/README_gene_prediction.md)** - Extract protein sequences from genomes
 - **[ESM-C Embeddings Guide](docs/README_embeddings.md)** - Generate protein embeddings
+
+### Advanced Analysis
+- **[Evaluation Framework](docs/evaluation.md)** - Multi-metric clustering evaluation (ARI, AMI, stability)
+- **[UMAP Array System](docs/umap_array.md)** - Parallelized dimensionality reduction
+- **[Clustering Guide](docs/clustering.md)** - Usage examples and visualization
+
+### Alternative Models
+- **[gLM2 Integration](docs/README_glm2.md)** - Genomic language model comparison
 
 ## Scripts
 
