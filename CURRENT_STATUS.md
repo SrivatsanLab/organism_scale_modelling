@@ -1,133 +1,133 @@
 # Current Clustering Pipeline Status
 
-**Updated**: 2025-11-06 (Comprehensive Parameter Sweep)
-**Status**: ✅ 50 stability evaluations running in parallel
+**Updated**: 2025-11-07 (MSA-Based Approach Test)
+**Status**: 🔄 Testing MSA + balanced sampling approach
 
 ---
 
-## 🚀 Comprehensive Stability Sweep Running
+## 🔬 MSA-Based Clustering Test (In Progress)
 
-### Job Array 41488384 (50 tasks)
-**Script**: `evaluate_clustering_stability_efficient.py`
-**Status**: ✅ Running
-**Runtime**: ~3-6 hours per task
-**Expected completion**: ~6-8 hours
+### Background: ESM Stability Results
+**Previous approach**: Random sampling → ESM embeddings → Leiden clustering
+**Result**: ❌ **Poor stability across all configs** (ARI 0.13-0.32)
+- 47/50 configurations tested (Job Array 41488384)
+- Highest ARI: 0.32 (res=300, nn=15)
+- All configs below "moderate" threshold (ARI < 0.4)
+- **Conclusion**: Random sampling introduces too much bias OR ESM-C doesn't capture needed structure
 
-**Parameter Grid**:
-- **Resolutions**: 300, 500, 750, 1000, 1500 (5 values)
-- **n_neighbors**: 15, 25, 50, 100, 200 (5 values)
-- **Datasets**: COG-only (798K), all genes (1M) (2 values)
-- **Total**: 5 × 5 × 2 = **50 configurations**
+### New Approach: Sequence Clustering → Balanced Sampling → ESM Clustering
+**Hypothesis**: Balanced sampling from sequence-based protein families will improve stability
 
-### What Each Config Tests
+### Current Job: MMseqs2 Test (Job 41552086)
+**Status**: 🔄 Running
+**Script**: `scripts/analysis/submit_mmseqs_test.sh`
+**Runtime**: ~30 minutes
+**Expected completion**: ~1 hour
 
-| Resolution | Expected Clusters (COG-only) | Expected Clusters (All genes) |
-|-----------|------------------------------|-------------------------------|
-| 300 | ~6,900 | ~7,200 |
-| 500 | ~10,900 | ~11,400 |
-| 750 | ~13,500 | ~14,200 |
-| 1000 | ~17,800 | ~18,600 |
-| 1500 | ~23,600 | ~25,000 |
+**Test Data**:
+- 50 genomes downloaded from NCBI (160,840 proteins)
+- File: `data/test_proteins_50genomes.faa` (61 MB)
+- Coverage: 5,526 genes overlap with PCA cache (0.55% of 1M subsample)
 
-**For each resolution**, testing:
-- n=15, 25, 50, 100, 200 (effect of kNN graph connectivity)
-- COG-only vs all genes (effect of dataset filtering)
+**MMseqs2 Parameters**:
+- Min sequence identity: 0.5 (50%)
+- Coverage: 0.8 (80%)
+- Cluster mode: 0 (greedy)
+- Expected output: ~5,000-50,000 sequence clusters
 
----
+### Test Pipeline Steps
 
-## What This Tests
-
-### 1. **Resolution vs Stability**
-Does higher resolution (more clusters) decrease stability?
-- If yes: Find optimal resolution where stability starts dropping
-- If no: Can safely use highest resolution for maximum granularity
-
-### 2. **n_neighbors vs Stability**
-Does kNN graph connectivity affect clustering stability?
-- Lower n_neighbors: Local structure, potentially more stable
-- Higher n_neighbors: Global structure, potentially smoother
-
-### 3. **COG-only vs All Genes**
-Does including unannotated genes affect stability?
-- COG-only: Cleaner signal (79.8% of genes)
-- All genes: Complete dataset
+1. ✅ **Download test genomes** - Complete (160K proteins from 50 genomes)
+2. 🔄 **MMseqs2 sequence clustering** - Running (Job 41552086)
+3. ⏸️ **Balanced sampling** - Pending (after MMseqs2 completes)
+4. ⏸️ **ESM clustering on balanced sample** - Pending
+5. ⏸️ **Stability evaluation** - Pending (compare to random sampling baseline)
 
 ---
 
-## Full Dataset Assignment
+## Why This Might Work Better
 
-### Job 41487126
-**Status**: ⏸️ Pending
-**When**: Will run after stability jobs finish
-**What**: Assigns all 29M genes to clusters based on res1500, nn15, COG-only
+### Problem with Random Sampling
+- Random sampling may over-represent abundant protein families
+- Under-represents rare but functionally important proteins
+- Creates unstable clusters due to sampling bias
+
+### Balanced Sampling Solution
+1. **Sequence clustering first**: Group proteins by homology (MMseqs2)
+2. **Balanced sampling**: Sample proportionally from each homology group
+3. **ESM clustering second**: Use ESM embeddings on balanced sample
+4. **Expected benefit**: Better representation → more stable functional clusters
+
+### Success Criteria
+- **ARI > 0.4**: At least "moderate" stability (vs 0.13-0.32 for random)
+- **Improvement > 50%**: Clear benefit over random sampling
+- **Gene stability > 0.7**: Most genes consistently assigned
 
 ---
 
-## After Jobs Complete
+## Next Steps (After MMseqs2 Completes)
 
-### 1. Comprehensive Summary (~8 hours from now)
+### 1. Check MMseqs2 Results (~30 minutes from now)
 
 ```bash
-python scripts/embeddings/summarize_stability_results.py
+# Check job status
+tail logs/mmseqs_test_41552086.out
+
+# View cluster summary
+head data/mmseqs_test/cluster_summary.csv
 ```
 
-**Output**:
-- Stability metrics across all 50 configurations
-- Heatmaps: resolution × n_neighbors for each metric
-- Recommendations for optimal parameters
+**Expected output**:
+- Number of sequence clusters (5,000-50,000)
+- Cluster size distribution
+- Average proteins per cluster
 
-**You'll see**:
+### 2. Create Balanced Sample
+
+```bash
+python scripts/analysis/balanced_sample_from_clusters.py \
+    --clusters data/mmseqs_test/cluster_summary_assignments.csv \
+    --pca-cache results/umap/pca_cache.npz \
+    --output data/balanced_sample_gene_ids.txt \
+    --n-samples 5000 \
+    --strategy sqrt
 ```
-Resolution  n_neighbors  Dataset    ARI_mean  Gene_Stability  N_Clusters
-300         15           COG-only   0.XXX     0.XXX          ~6,900
-300         25           COG-only   0.XXX     0.XXX          ~6,900
-...         ...          ...        ...       ...            ...
-1500        200          all        0.XXX     0.XXX          ~25,000
-```
 
-### 2. Analysis Questions Answered
+**Expected**:
+- Sample ~5,000 genes balanced across sequence clusters
+- Genes selected from PCA cache (have ESM embeddings)
 
-**Q1: Does stability decrease with resolution?**
-- Compare ARI across resolutions (300 → 1500)
-- Find where trade-off curve bends
+### 3. Run Clustering on Balanced Sample
 
-**Q2: What's the best n_neighbors?**
-- Compare ARI across n_neighbors for each resolution
-- Identify if there's a clear winner
+Adapt existing Leiden clustering scripts to use balanced sample instead of random sample
 
-**Q3: Should we use COG-only or all genes?**
-- Compare stability between datasets
-- Check if unannotated genes add noise
+### 4. Evaluate Stability
 
-**Q4: What's the optimal configuration?**
-- Highest resolution with ARI > 0.6 (if any)
-- Best balance of granularity and stability
+Run stability evaluation and compare ARI to random sampling baseline (0.13-0.32)
 
 ---
 
 ## Expected Outcomes
 
-### Scenario 1: High stability everywhere (ARI > 0.7)
-✅ **Use highest resolution** (res=1500, best n_neighbors)
-- Clusters are robust even at fine granularity
-- ~23,600 clusters are stable and meaningful
-- Proceed with full 29M assignment
+### Scenario 1: Balanced Sampling Works (ARI > 0.4)
+✅ **Scale to full dataset**
+1. Download all 7,664 genomes (or use full 29M gene sequences if available)
+2. Run MMseqs2 on full 29M proteins
+3. Create balanced 1M sample from sequence clusters
+4. Run full clustering pipeline on balanced sample
+5. Assign remaining 28M genes to clusters
 
-### Scenario 2: Stability decreases with resolution
-⚠️ **Find the knee in the curve**
-- E.g., res=750 stable but res=1000+ unstable
-- Use highest stable resolution
-- Trade some granularity for robustness
+### Scenario 2: Marginal Improvement (ARI 0.3-0.4)
+⚠️ **Consider hybrid approach**
+- Use sequence clusters as coarse grouping
+- Within each sequence cluster, use ESM for fine-grained functional clustering
+- May need to adjust MMseqs2 stringency (higher/lower identity threshold)
 
-### Scenario 3: n_neighbors matters significantly
-🔧 **Optimize n_neighbors**
-- May find that n=25 or n=50 gives best stability
-- Update full assignment to use optimal n_neighbors
-
-### Scenario 4: Low stability everywhere (ARI < 0.4)
-❌ **Need different approach**
-- Leiden clustering may not be ideal for this data
-- Consider: hierarchical clustering, different features, sequence-based
+### Scenario 3: No Improvement (ARI < 0.3)
+❌ **Problem is with ESM-C embeddings, not sampling**
+- Consider gLM2 embeddings (include genomic context: 5' UTR, promoters)
+- User's coworker had encouraging results with gLM2
+- Would need to generate gLM2 embeddings for all 29M genes
 
 ---
 

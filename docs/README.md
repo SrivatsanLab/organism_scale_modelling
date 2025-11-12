@@ -61,13 +61,13 @@ Comprehensive Evaluation (ARI, AMI, Stability)
 1. **Quality Evaluation** (Job 41274292):
    - Computing ARI, AMI, silhouette, Davies-Bouldin for all 129 clusterings
    - Runtime: ~4 hours
-   - Output: `results/clustering/quality_metrics_comprehensive.csv`
+   - Output: `results/1_genome_to_graph/1.4_esm_embedding_clustering/clustering/quality_metrics_comprehensive.csv`
 
 2. **Stability Evaluation** (Job 41274295):
    - Testing clustering robustness across independent subsamples
    - 4 configurations: res1500/1000/750 with n=15
    - Runtime: ~12 hours
-   - Output: `results/clustering/stability/stability_*.npz`
+   - Output: `results/1_genome_to_graph/1.4_esm_embedding_clustering/clustering/stability/stability_*.npz`
 
 ### 📋 Next Steps
 
@@ -114,7 +114,7 @@ scripts/embeddings/generate_esm_embeddings.sh
 #### 2.1 PCA Preprocessing
 ```bash
 # Computed automatically by UMAP/clustering scripts
-# Output: results/umap/pca_cache.npz
+# Output: results/1_genome_to_graph/1.4_esm_embedding_clustering/umap/pca_cache.npz
 ```
 - 1152D → 50D (preserves 91.8% variance)
 - Enables efficient clustering on large dataset
@@ -329,12 +329,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Load UMAP (1M genes, n_neighbors=15)
-umap_data = np.load('results/umap/umap_n15_subsample1000000.npz', allow_pickle=True)
+umap_data = np.load('results/1_genome_to_graph/1.4_esm_embedding_clustering/umap/umap_n15_subsample1000000.npz', allow_pickle=True)
 umap_coords = umap_data['umap_embedding']
 gene_ids = umap_data['gene_ids']
 
 # Load best clustering (res=1500, n=15, COG-only)
-clust_data = np.load('results/clustering/clusters_leiden_res1500_nn15_cogonly.npz',
+clust_data = np.load('results/1_genome_to_graph/1.4_esm_embedding_clustering/clustering/clusters_leiden_res1500_nn15_cogonly.npz',
                      allow_pickle=True)
 cluster_labels = clust_data['labels']
 
@@ -353,10 +353,10 @@ plt.show()
 
 ```bash
 # View homogeneity results
-cat results/clustering/leiden_sweep_summary.csv | column -t -s','
+cat results/1_genome_to_graph/1.4_esm_embedding_clustering/clustering/leiden_sweep_summary.csv | column -t -s','
 
 # When quality eval completes:
-cat results/clustering/quality_metrics_comprehensive.csv | column -t -s','
+cat results/1_genome_to_graph/1.4_esm_embedding_clustering/clustering/quality_metrics_comprehensive.csv | column -t -s','
 
 # Compare metrics
 python scripts/embeddings/compare_clustering_metrics.py
@@ -543,10 +543,10 @@ scontrol show job JOBID
 
 ```bash
 # Check if PCA cache exists
-ls results/umap/pca_cache.npz
+ls results/1_genome_to_graph/1.4_esm_embedding_clustering/umap/pca_cache.npz
 
 # Regenerate if missing
-python scripts/embeddings/compute_umap_array.py --save-pca results/umap/pca_cache.npz ...
+python scripts/embeddings/compute_umap_array.py --save-pca results/1_genome_to_graph/1.4_esm_embedding_clustering/umap/pca_cache.npz ...
 ```
 
 ### GPU Issues
