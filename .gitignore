@@ -1,6 +1,5 @@
 # Data directories
 data/
-results/
 logs/
 
 # eggNOG-mapper temporary directories
