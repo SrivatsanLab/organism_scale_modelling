@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 """
-Merge batched embeddings into a single file and combine with existing PCA cache.
+Merge batched embeddings into a single PCA cache file.
 
-Combines:
-1. Existing embeddings from PCA cache (1M proteins, 50D)
-2. Newly generated embeddings (11.8M proteins, original dimensions)
-
-Then applies PCA to new embeddings to match 50D, and creates final combined cache.
+Processes all 11.8M newly generated embeddings:
+1. Loads all batch files
+2. Applies PCA to reduce from 1152D to 50D
+3. Saves final PCA cache for downstream analysis
 """
 
 import numpy as np
@@ -17,21 +16,10 @@ from sklearn.decomposition import IncrementalPCA
 
 
 def load_existing_embeddings():
-    """Load existing embeddings from PCA cache."""
-    print("Loading existing embeddings from PCA cache...")
-    cache = np.load('results/1_genome_to_graph/1.4_esm_embedding_clustering/umap/pca_cache.npz', allow_pickle=True)
-
-    gene_ids_short = cache['gene_ids']
-    genome_ids = cache['genome_ids']
-    embeddings_pca = cache['embeddings_pca']
-
-    # Reconstruct full gene IDs
-    gene_ids_full = [f"{genome}_{gene}" for genome, gene in zip(genome_ids, gene_ids_short)]
-
-    print(f"  Loaded {len(gene_ids_full):,} proteins")
-    print(f"  Embedding dimensions: {embeddings_pca.shape[1]}")
-
-    return gene_ids_full, embeddings_pca
+    """Deprecated - no longer merging with old cache."""
+    # Old testing cache has been moved to testing/ directory
+    # This function is kept for reference but not used
+    pass
 
 
 def load_batch_embeddings(batch_dir):
@@ -87,30 +75,19 @@ def main():
     print("=" * 80)
     print()
 
-    # Load existing embeddings
-    existing_gene_ids, existing_embeddings = load_existing_embeddings()
-
     # Load batch embeddings
     batch_dir = Path('/fh/working/srivatsan_s/dmullane_organism_scale/embeddings/batches')
-    new_gene_ids, new_embeddings = load_batch_embeddings(batch_dir)
+    gene_ids, embeddings = load_batch_embeddings(batch_dir)
 
-    # Apply PCA to new embeddings
-    new_embeddings_pca, pca = apply_pca_to_new_embeddings(new_embeddings, n_components=50)
+    # Apply PCA to reduce dimensions
+    embeddings_pca, pca = apply_pca_to_new_embeddings(embeddings, n_components=50)
 
-    # Combine with existing embeddings
-    print("\nCombining embeddings...")
-    combined_gene_ids = existing_gene_ids + new_gene_ids
-    combined_embeddings = np.vstack([existing_embeddings, new_embeddings_pca])
-
-    print(f"  Total proteins: {len(combined_gene_ids):,}")
-    print(f"  Combined shape: {combined_embeddings.shape}")
-
-    # Parse gene IDs back into genome and gene components
+    # Parse gene IDs into genome and gene components
     print("\nParsing gene IDs...")
     genome_ids = []
     gene_ids_short = []
 
-    for gene_id in tqdm(combined_gene_ids, desc="Parsing"):
+    for gene_id in tqdm(gene_ids, desc="Parsing"):
         parts = gene_id.split('_', 1)
         if len(parts) == 2:
             genome_ids.append(parts[0])
@@ -120,15 +97,15 @@ def main():
             genome_ids.append('')
             gene_ids_short.append(gene_id)
 
-    # Save combined cache
-    output_file = Path('results/1_genome_to_graph/1.4_esm_embedding_clustering/umap/pca_cache_full.npz')
-    print(f"\nSaving combined embeddings to {output_file}...")
+    # Save PCA cache
+    output_file = Path('results/1_genome_to_graph/1.4_esm_embedding_clustering/umap/pca_cache.npz')
+    print(f"\nSaving PCA cache to {output_file}...")
 
     np.savez_compressed(
         output_file,
-        gene_ids=gene_ids_short,
-        genome_ids=genome_ids,
-        embeddings_pca=combined_embeddings,
+        gene_ids=np.array(gene_ids_short),
+        genome_ids=np.array(genome_ids),
+        embeddings_pca=embeddings_pca,
         explained_variance_ratio=pca.explained_variance_ratio_
     )
 
@@ -137,9 +114,9 @@ def main():
     print("COMPLETE")
     print("=" * 80)
     print()
-    print(f"Combined embeddings saved to: {output_file}")
-    print(f"  Total proteins: {len(combined_gene_ids):,}")
-    print(f"  Dimensions: {combined_embeddings.shape[1]}")
+    print(f"PCA cache saved to: {output_file}")
+    print(f"  Total proteins: {len(gene_ids):,}")
+    print(f"  Dimensions: {embeddings_pca.shape[1]}")
     print(f"  File size: {output_file.stat().st_size / 1e9:.2f} GB")
     print()
 
