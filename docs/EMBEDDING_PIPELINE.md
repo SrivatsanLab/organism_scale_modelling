@@ -184,58 +184,75 @@ Once the full embedding cache is generated:
    - Cluster quality metrics
 4. **Compare** with previous results (3.7K clusters with embeddings)
 
-## Status Update - 2025-11-12
+## Status Update - 2025-11-14
 
-### Completed Tasks
+### ✅ All Tasks Completed
 
-✅ **All 1,184 embedding batches completed successfully**
-- Total proteins: 11,837,414
-- Total size: 64 GB (batch files)
-- All batches verified and complete
+**Embedding Generation:**
+- ✅ Generated ESM-C embeddings for 11,837,414 proteins (1,184 GPU batches)
+- ✅ Merged into PCA cache: 4.3 GB, 50D embeddings, 89.2% variance explained
+- ✅ Storage optimized: Moved 17GB to `/working` storage
 
-✅ **Embeddings merged into PCA cache**
-- Output: `results/1_genome_to_graph/1.4_esm_embedding_clustering/umap/pca_cache.npz`
-- Size: 4.3 GB
-- Dimensions: 11.8M proteins × 50D
-- PCA variance explained: **89.2%** (excellent retention)
+**Dimensionality Reduction & Visualization:**
+- ✅ UMAP embeddings computed for all 11.8M proteins
+  - Output: `results/1_genome_to_graph/1.4_esm_embedding_clustering/umap/umap_full_n15.npz` (123MB)
+  - Parameters: n_neighbors=15, min_dist=0.1
+  - Visualizations created: density plot, cluster-colored plot
 
-✅ **Storage optimization**
-- Moved `data/` directory (17GB) from `/fast` to `/working` storage
-- Created symlink to maintain compatibility
-- Saved 17GB on expensive storage
+**Cluster Tightness Analysis:**
+- ✅ Analyzed 388,858 MMseqs2 clusters (min size ≥2) in embedding space
+  - Total time: 33 minutes
+  - Statistics: `cluster_analysis/mmseqs_cluster_statistics.csv` (52MB)
+  - Per-dimension: `cluster_analysis/mmseqs_cluster_per_dimension_stats.csv` (1.5GB)
+  - 5 visualization figures created
 
-### Currently Running
+### 🎯 Key Finding: MMseqs2 Clusters Are Extremely Tight
 
-🔄 **UMAP computation** (Job 41771479)
-- Computing 2D UMAP embeddings for all 11.8M proteins
-- Parameters: n_neighbors=15, min_dist=0.1
-- Input: 50D PCA embeddings (4.3GB)
-- Estimated completion: ~1-2 hours
-- Output: `results/1_genome_to_graph/1.4_esm_embedding_clustering/umap/umap_full_n15.npz`
+**Cluster tightness metrics:**
+- **Mean std per cluster: 0.0088** ← Very tight!
+- **Median std: 0.0106**
+- **Mean pairwise distance: 0.21**
+- **75th percentile mean_std: 0.0106**
 
-🔄 **MMseqs2 cluster tightness analysis** (Job 41772028)
-- Analyzing embedding space tightness of 70% sequence identity clusters
-- Processing 30M cluster assignments
-- Computing per-cluster statistics:
-  - Mean & std dev across all 50 PCA dimensions
-  - Pairwise distances within clusters
-  - Overall cluster variance metrics
-- Outputs:
-  - `mmseqs_cluster_statistics.csv` - Overall metrics per cluster
-  - `mmseqs_cluster_per_dimension_stats.csv` - Per-dimension stats
-  - Visualization plots in `cluster_analysis/figures/`
+**Interpretation:** Proteins clustered by sequence identity (70%) have nearly identical ESM embeddings. This validates using **MMseqs2 clusters directly as gene nodes** without additional Leiden clustering.
 
-### Purpose of Cluster Tightness Analysis
+### 📊 Generated Outputs
 
-This analysis determines whether MMseqs2 clusters (70% sequence identity) are already tight enough in ESM embedding space that we don't need additional Leiden clustering. If clusters show low variance in embedding space, we can use MMseqs2 clusters directly for downstream analysis.
+**PCA & Embeddings:**
+- `results/1_genome_to_graph/1.4_esm_embedding_clustering/umap/pca_cache.npz` (4.3GB)
+  - 11,837,414 proteins × 50 dimensions
+  - 89.2% variance explained
 
-### Next Steps
+**UMAP Visualizations:**
+- `results/.../umap/umap_full_n15.npz` (123MB) - Full 2D embeddings
+- `results/.../umap/figures/umap_density.png` - Shows smooth, continuous protein space
+- `results/.../umap/figures/umap_by_cluster.png` - 100K sample colored by cluster
+- `results/.../umap/figures/cluster_size_distribution.png`
 
-Once current jobs complete:
-1. Review cluster tightness results to decide on clustering strategy
-2. Generate UMAP visualizations colored by genome and cluster
-3. If needed, perform Leiden clustering on embeddings
-4. Create final comprehensive visualizations
+**Cluster Analysis:**
+- `results/.../cluster_analysis/mmseqs_cluster_statistics.csv` (52MB)
+  - 388,858 clusters with size, mean_std, max_std, variance, pairwise distances
+- `results/.../cluster_analysis/mmseqs_cluster_per_dimension_stats.csv` (1.5GB)
+  - Per-dimension statistics for all clusters
+- `results/.../cluster_analysis/figures/` (5 visualization files):
+  - `cluster_tightness_summary.png` - Overview with key metrics
+  - `cluster_tightness_distributions.png` - Histograms
+  - `size_vs_tightness.png` - Correlation analysis
+  - `mean_std_per_dimension.png` - Which dimensions vary most
+  - `dimension_std_heatmap.png` - Top 100 clusters
+
+### 📈 Dataset Statistics
+
+- **Total proteins in dataset**: 30,098,843
+- **Proteins with embeddings**: 11,837,414 (unique proteins in filtered clusters)
+- **MMseqs2 clusters analyzed**: 388,858 (with ≥2 members)
+- **Unique genomes**: 7,664
+
+### 🎯 Conclusion & Recommendation
+
+The extremely low variance within MMseqs2 clusters (mean_std = 0.0088) indicates that **70% sequence identity clustering already captures functional similarity** in the learned ESM embedding space.
+
+**Recommendation:** Use the 388,858 MMseqs2 clusters directly as gene family nodes in the graph, without additional embedding-based clustering. This simplifies the pipeline and maintains biological interpretability.
 
 ## Generated By
 

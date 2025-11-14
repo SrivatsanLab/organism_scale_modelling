@@ -23,7 +23,7 @@ PYTHON_ENV="/home/dmullane/micromamba/envs/esm3_env/bin/python"
 
 # Step 1: Analyze cluster tightness
 echo "Step 1: Computing cluster statistics..."
-$PYTHON_ENV 1_genome_to_graph/1.4_esm_embedding_clustering/clustering/analyze_mmseqs_cluster_tightness.py \
+$PYTHON_ENV -u 1_genome_to_graph/1.4_esm_embedding_clustering/clustering/analyze_mmseqs_cluster_tightness.py \
     --pca-cache results/1_genome_to_graph/1.4_esm_embedding_clustering/umap/pca_cache.npz \
     --mmseqs-clusters results/1_genome_to_graph/1.3_msa/mmseqs_seqid_0p7/clusters.tsv \
     --output-dir results/1_genome_to_graph/1.4_esm_embedding_clustering/cluster_analysis \
@@ -31,7 +31,7 @@ $PYTHON_ENV 1_genome_to_graph/1.4_esm_embedding_clustering/clustering/analyze_mm
 
 echo ""
 echo "Step 2: Creating visualizations..."
-$PYTHON_ENV 1_genome_to_graph/1.4_esm_embedding_clustering/clustering/visualize_cluster_tightness.py \
+$PYTHON_ENV -u 1_genome_to_graph/1.4_esm_embedding_clustering/clustering/visualize_cluster_tightness.py \
     --stats-file results/1_genome_to_graph/1.4_esm_embedding_clustering/cluster_analysis/mmseqs_cluster_statistics.csv \
     --per-dim-file results/1_genome_to_graph/1.4_esm_embedding_clustering/cluster_analysis/mmseqs_cluster_per_dimension_stats.csv \
     --output-dir results/1_genome_to_graph/1.4_esm_embedding_clustering/cluster_analysis/figures
