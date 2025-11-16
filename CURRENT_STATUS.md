@@ -1,7 +1,106 @@
-# Current Clustering Pipeline Status
+# Current Pipeline Status
 
-**Updated**: 2025-11-07 (MSA-Based Approach Test)
-**Status**: 🔄 Testing MSA + balanced sampling approach
+**Updated**: 2025-11-15
+**Status**: ✅ Component 1.1 (K-mer Profiling) - COMPLETE
+
+---
+
+## 📊 Component 1.1: K-mer Profiling - ✅ COMPLETE
+
+### Overview
+Generate 5-mer frequency profiles for all 7,664 bacterial genomes to serve as genome node attributes in the heterogeneous graph.
+
+### Implementation Status: ✅ COMPLETE
+
+**What's Implemented**:
+
+1. **Core Profiling Script** (`1_genome_to_graph/1.1_kmer_profiling/generate_5mer_profiles.sh`)
+   - Uses Jellyfish 2.3.0 for fast k-mer counting
+   - Canonical k-mers (both strands counted together)
+   - Generates both counts and statistics per genome
+   - Runtime: ~1-3 min per genome
+
+2. **SLURM Array Job** (`1_genome_to_graph/1.1_kmer_profiling/submit_5mer_array.sh`)
+   - Processes all 7,664 genomes in parallel
+   - Resume capability (skips completed genomes)
+   - Proper logging to project logs directory
+   - Memory: 8GB, 4 CPUs per genome
+
+3. **Matrix Creation** (`1_genome_to_graph/1.1_kmer_profiling/create_kmer_matrix.py`)
+   - Combines individual profiles into sparse matrix
+   - Supports multiple normalization methods
+   - Saves metadata (genome IDs, k-mer list)
+   - Optimized for large datasets
+
+### Completion Status: ✅ FINISHED (2025-11-15)
+
+**Job**: 41842880 (SLURM array, 7,664 tasks)
+**All genomes processed**: 7,664 / 7,664 ✓
+**Matrix created**: 7,664 × 512 (100% density)
+**Output size**:
+- Individual profiles: 412 MB (15,328 files)
+- Combined matrix: 14 MB (sparse format)
+- Metadata: 2.0 MB
+
+### Output Specifications
+
+**K-mer Profiles**:
+- Format: Tab-separated (k-mer, count)
+- Size: 512 canonical 5-mers per genome
+- Total observations: ~2M k-mers per genome (avg)
+
+**Combined Matrix**:
+- Dimensions: 7,664 genomes × 512 k-mers
+- Format: Sparse CSR matrix (.npz)
+- Density: 100% (all k-mers expected)
+- Size: ~10-50 MB
+
+### Integration Points
+
+This component provides input for:
+
+1. **Component 1.6** (Genome-genome graph assembly)
+   - K-mer distance calculations
+   - Phylogenetic similarity metrics
+
+2. **Component 1.7** (Full graph assembly)
+   - Genome node attributes
+   - 512-dimensional feature vectors per genome
+
+### Dependencies
+
+- **Software**: Jellyfish/2.3.0-GCC-11.2.0 (module)
+- **Python**: /home/dmullane/micromamba/envs/esm3_env/bin/python
+- **Packages**: numpy, scipy, pandas, tqdm
+
+### Output Files
+
+**Location**: `results/1_genome_to_graph/1.1_kmer_profiling/`
+
+1. **Individual profiles** (7,664 genomes):
+   - `{genome_id}_5mer.txt` - K-mer counts
+   - `{genome_id}_5mer_stats.txt` - Statistics
+
+2. **Combined matrix**:
+   - `5mer_matrix.npz` - Sparse CSR matrix (7664 × 512, 14 MB)
+   - `5mer_matrix.meta.npz` - Metadata (genome IDs, k-mer list, 2 MB)
+
+### Usage Example
+
+```python
+import numpy as np
+from scipy.sparse import load_npz
+
+# Load matrix and metadata
+matrix = load_npz('results/1_genome_to_graph/1.1_kmer_profiling/5mer_matrix.npz')
+meta = np.load('results/1_genome_to_graph/1.1_kmer_profiling/5mer_matrix.meta.npz', allow_pickle=True)
+
+genome_ids = meta['genome_ids']  # Array of 7,664 genome IDs
+kmer_list = meta['kmer_list']    # Array of 512 k-mers
+
+# Get k-mer profile for first genome (normalized frequencies)
+genome_0_profile = matrix[0, :].toarray().flatten()
+```
 
 ---
 
