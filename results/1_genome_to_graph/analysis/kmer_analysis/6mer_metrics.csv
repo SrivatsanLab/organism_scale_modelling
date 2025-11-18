@@ -1,3 +1,0 @@
-kmer_size,taxonomic_level,n_taxa,n_common_taxa,n_genomes_analyzed,silhouette,taxonomic_purity_mean,taxonomic_purity_median,taxonomic_purity_q25,taxonomic_purity_q75
-6,genus,2140,604,5741,-0.23959502577781677,0.40965859606340355,0.3,0.1,0.7
-6,species,7647,4,20,0.4015520215034485,0.2368421052631579,0.2631578947368421,0.15789473684210525,0.3157894736842105

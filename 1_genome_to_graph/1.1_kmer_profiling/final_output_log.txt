@@ -1,0 +1,115 @@
+OpenBLAS warning: precompiled NUM_THREADS exceeded, adding auxiliary array for thread metadata.
+To avoid this warning, please rebuild your copy of OpenBLAS with a larger NUM_THREADS setting
+or set the environment variable OPENBLAS_NUM_THREADS to 64 or lower
+======================================================================
+Creating final outputs for Component 1.1: K-mer profiling
+======================================================================
+
+[1] Loading 6-mer matrix...
+Matrix shape: (7664, 2080)
+Matrix format: csr_matrix
+Matrix dtype: float32
+Sparsity: 0.0001
+Matrix size on disk: 47.9 MB
+
+[2] Compressing matrix...
+
+Matrix already in optimal format (CSR, float32)
+
+Saved compressed matrix: results/1_genome_to_graph/1.1_kmer_profiling/final/6mer_matrix_compressed.npz
+Final size: 47.9 MB
+
+[3] Saving genome and k-mer indices...
+Saved genome index: results/1_genome_to_graph/1.1_kmer_profiling/final/genome_index.csv
+  7664 genomes
+  2140 unique genera
+Saved k-mer index: results/1_genome_to_graph/1.1_kmer_profiling/final/kmer_index.csv
+  2080 canonical 6-mers
+
+[4] Determining optimal representation for graph construction...
+
+Running PCA (n_components=50)...
+Explained variance: 0.975
+PC1 variance: 0.696
+
+Comparing representations for genus-level structure...
+
+Testing full 6-mer space (2080D)...
+Building k-NN graph with k=20, metric=cosine...
+  Genus purity: 0.001
+
+Testing PCA space (50D)...
+Building k-NN graph with k=20, metric=cosine...
+  Genus purity: 0.001
+
+Using PCA space (50D) for graph construction
+
+[5] Finding optimal k for genus-level neighborhood graph...
+
+Searching for optimal k...
+Building k-NN graph with k=10, metric=cosine...
+  k= 10: genus purity = 0.001
+Building k-NN graph with k=15, metric=cosine...
+  k= 15: genus purity = 0.001
+Building k-NN graph with k=20, metric=cosine...
+  k= 20: genus purity = 0.001
+Building k-NN graph with k=25, metric=cosine...
+  k= 25: genus purity = 0.001
+Building k-NN graph with k=30, metric=cosine...
+  k= 30: genus purity = 0.001
+Building k-NN graph with k=35, metric=cosine...
+  k= 35: genus purity = 0.001
+Building k-NN graph with k=40, metric=cosine...
+  k= 40: genus purity = 0.001
+Building k-NN graph with k=45, metric=cosine...
+  k= 45: genus purity = 0.001
+Building k-NN graph with k=50, metric=cosine...
+  k= 50: genus purity = 0.001
+
+Optimal k = 10 (genus purity = 0.001)
+
+Saved k optimization results: results/1_genome_to_graph/1.1_kmer_profiling/final/k_optimization.csv
+
+[6] Creating final k-NN adjacency matrix...
+Building k-NN graph with k=10, metric=cosine...
+
+Adjacency matrix properties:
+  Shape: (7664, 7664)
+  Format: csr_matrix
+  Edges: 49861
+  Avg degree: 13.0
+  Sparsity: 0.998302
+
+Final genus purity: 0.001
+
+Saved adjacency matrix: results/1_genome_to_graph/1.1_kmer_profiling/final/adjacency_matrix.npz
+Size: 0.2 MB
+
+[7] Saving metadata...
+Saved metadata: results/1_genome_to_graph/1.1_kmer_profiling/final/metadata.txt
+
+======================================================================
+SUMMARY - Final outputs created:
+======================================================================
+
+1. Compressed 6-mer matrix:
+   results/1_genome_to_graph/1.1_kmer_profiling/final/6mer_matrix_compressed.npz
+   Shape: (7664, 2080), Size: 47.9 MB
+
+2. Genome index:
+   results/1_genome_to_graph/1.1_kmer_profiling/final/genome_index.csv
+   7664 genomes, 2140 genera
+
+3. K-mer index:
+   results/1_genome_to_graph/1.1_kmer_profiling/final/kmer_index.csv
+   2080 canonical 6-mers
+
+4. K-NN adjacency matrix:
+   results/1_genome_to_graph/1.1_kmer_profiling/final/adjacency_matrix.npz
+   k=10, metric=cosine, 49861 edges
+   Genus purity: 0.001
+
+5. Metadata:
+   results/1_genome_to_graph/1.1_kmer_profiling/final/metadata.txt
+
+======================================================================
