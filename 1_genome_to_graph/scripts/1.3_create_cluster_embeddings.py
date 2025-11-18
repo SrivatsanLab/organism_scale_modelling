@@ -25,9 +25,26 @@ from tqdm import tqdm
 import argparse
 
 
-def load_cluster_assignments(cluster_file):
+def load_used_clusters(cluster_stats_file):
     """
-    Load MMseqs2 cluster assignments.
+    Load the list of clusters that were actually used in analysis.
+
+    Returns:
+        set: Set of cluster IDs to include
+    """
+    print(f"Loading used clusters from {cluster_stats_file}...")
+
+    df = pd.read_csv(cluster_stats_file)
+    used_clusters = set(df['cluster_representative'].values)
+
+    print(f"Found {len(used_clusters):,} clusters to include")
+
+    return used_clusters
+
+
+def load_cluster_assignments(cluster_file, used_clusters=None):
+    """
+    Load MMseqs2 cluster assignments, optionally filtering to used clusters.
 
     Returns:
         dict: protein_id -> cluster_representative
@@ -42,8 +59,11 @@ def load_cluster_assignments(cluster_file):
             parts = line.strip().split('\t')
             if len(parts) == 2:
                 cluster_rep, protein_id = parts
-                protein_to_cluster[protein_id] = cluster_rep
-                cluster_sizes[cluster_rep] += 1
+
+                # Only include if cluster is in the used set
+                if used_clusters is None or cluster_rep in used_clusters:
+                    protein_to_cluster[protein_id] = cluster_rep
+                    cluster_sizes[cluster_rep] += 1
 
     n_proteins = len(protein_to_cluster)
     n_clusters = len(cluster_sizes)
@@ -180,6 +200,12 @@ def main():
         help='MMseqs2 cluster TSV file'
     )
     parser.add_argument(
+        '--cluster-stats',
+        type=str,
+        default='1_genome_to_graph/intermediate/protein/esm_embeddings/cluster_analysis/mmseqs_cluster_statistics.csv',
+        help='CSV file with used cluster IDs (from previous analysis)'
+    )
+    parser.add_argument(
         '--embeddings',
         type=str,
         default='data/esm_embeddings',
@@ -198,8 +224,14 @@ def main():
     print("Creating Cluster-Level ESM Embeddings")
     print("="*70)
 
-    # Load cluster assignments
-    protein_to_cluster, cluster_sizes = load_cluster_assignments(args.clusters)
+    # Load the set of clusters that were actually used
+    used_clusters = load_used_clusters(args.cluster_stats)
+
+    # Load cluster assignments (filtered to used clusters only)
+    protein_to_cluster, cluster_sizes = load_cluster_assignments(
+        args.clusters,
+        used_clusters=used_clusters
+    )
 
     # Load all embeddings organized by cluster
     cluster_embeddings = load_all_embeddings(args.embeddings, protein_to_cluster)
