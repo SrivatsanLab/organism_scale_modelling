@@ -93,7 +93,7 @@ def load_all_embeddings(embedding_dir, protein_to_cluster):
     proteins_missing = 0
 
     for emb_file in tqdm(embedding_files, desc="Loading embeddings"):
-        data = np.load(emb_file)
+        data = np.load(emb_file, allow_pickle=True)
         embeddings = data['embeddings']  # Shape: (n_proteins, 1152)
         seq_ids = data['seq_ids']
 
