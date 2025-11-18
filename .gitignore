@@ -63,3 +63,6 @@ notebooks/core
 *.npy
 # Exclude full uncompressed distance matrix (too large for GitHub)
 results/1_genome_to_graph/1.1_kmer_profiling/final/distance_matrix.npz
+
+# Intermediate data directories (not tracked in git)
+results/1_genome_to_graph/intermediate/
