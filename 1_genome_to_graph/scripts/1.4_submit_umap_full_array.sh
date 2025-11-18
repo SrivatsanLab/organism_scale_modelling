@@ -21,7 +21,7 @@ USE_GPU=""                              # CPU mode (GPU likely won't have enough
 # Paths
 PROJECT_DIR="/home/dmullane/SrivatsanLab/Dustin/organism_scale_modelling"
 EMBEDDINGS_DIR="${PROJECT_DIR}/data/esm_embeddings"
-RESULTS_DIR="${PROJECT_DIR}/results/1_genome_to_graph/1.4_esm_embedding_clustering/umap"
+RESULTS_DIR="${PROJECT_DIR}/1_genome_to_graph/intermediate/protein/esm_embeddings/umap"
 PCA_CACHE="${RESULTS_DIR}/pca_cache_full.npz"  # Different cache for full dataset
 SCRIPT="${PROJECT_DIR}/scripts/embeddings/compute_umap_array.py"
 

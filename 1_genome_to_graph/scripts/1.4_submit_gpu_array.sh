@@ -14,7 +14,7 @@
 
 PROJECT_DIR="/home/dmullane/SrivatsanLab/Dustin/organism_scale_modelling"
 SCRIPT="${PROJECT_DIR}/scripts/embeddings/compute_gpu_embeddings.py"
-PCA_CACHE="${PROJECT_DIR}/results/1_genome_to_graph/1.4_esm_embedding_clustering/umap/pca_cache.npz"  # 1M genes, 50D PCA
+PCA_CACHE="${PROJECT_DIR}/1_genome_to_graph/intermediate/protein/esm_embeddings/umap/pca_cache.npz"  # 1M genes, 50D PCA
 OUTPUT_DIR="${PROJECT_DIR}/results/gpu_embeddings"
 CONTAINER_DIR="${PROJECT_DIR}/containers"
 

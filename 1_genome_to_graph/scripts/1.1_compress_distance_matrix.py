@@ -95,10 +95,10 @@ def decompress_distance_matrix(input_path):
 def main():
     parser = argparse.ArgumentParser(description='Compress distance matrix for git')
     parser.add_argument('--input', type=str,
-                        default='results/1_genome_to_graph/1.1_kmer_profiling/final/distance_matrix.npz',
+                        default='1_genome_to_graph/intermediate/kmer/distance_matrix.npz',
                         help='Input distance matrix')
     parser.add_argument('--output', type=str,
-                        default='results/1_genome_to_graph/1.1_kmer_profiling/final/distance_matrix_compressed.npz',
+                        default='1_genome_to_graph/graph_outputs/genome_graph/distance_matrix_compressed.npz',
                         help='Output compressed matrix')
     parser.add_argument('--verify', action='store_true',
                         help='Verify decompression works correctly')

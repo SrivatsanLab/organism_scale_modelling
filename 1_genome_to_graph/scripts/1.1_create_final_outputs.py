@@ -117,7 +117,7 @@ def find_optimal_k(X, taxonomy_df, k_range, metric='cosine'):
 def main():
     parser = argparse.ArgumentParser(description='Create final outputs for Component 1.1')
     parser.add_argument('--output-dir', type=str,
-                        default='results/1_genome_to_graph/1.1_kmer_profiling/final',
+                        default='1_genome_to_graph/graph_outputs/genome_graph',
                         help='Output directory')
     parser.add_argument('--n-pca', type=int, default=50,
                         help='Number of PCA components for graph construction')
@@ -144,8 +144,8 @@ def main():
     # Step 1: Load 6-mer matrix
     # ========================================================================
     print("\n[1] Loading 6-mer matrix...")
-    matrix_path = 'results/1_genome_to_graph/1.1_kmer_profiling/6mer/6mer_matrix.npz'
-    meta_path = 'results/1_genome_to_graph/1.1_kmer_profiling/6mer/6mer_matrix.meta.npz'
+    matrix_path = '1_genome_to_graph/intermediate/kmer/6mer/6mer_matrix.npz'
+    meta_path = '1_genome_to_graph/intermediate/kmer/6mer/6mer_matrix.meta.npz'
 
     matrix = load_npz(matrix_path)
     meta = np.load(meta_path, allow_pickle=True)

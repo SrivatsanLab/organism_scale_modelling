@@ -6,7 +6,7 @@ This script is designed to be run as part of a SLURM array job,
 with each job processing a different n_neighbors value.
 
 Usage:
-    python compute_umap_array.py --n-neighbors 15 --output results/1_genome_to_graph/1.4_esm_embedding_clustering/umap_n15.npz
+    python compute_umap_array.py --n-neighbors 15 --output 1_genome_to_graph/intermediate/protein/esm_embeddings/umap_n15.npz
 """
 
 import argparse

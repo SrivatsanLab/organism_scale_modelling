@@ -20,8 +20,8 @@ set -e
 # Directories
 PROJECT_ROOT="/fh/fast/srivatsan_s/grp/SrivatsanLab/Dustin/organism_scale_modelling"
 GENOME_DIR="$PROJECT_ROOT/data/refseq_genomes"
-OUTPUT_DIR="$PROJECT_ROOT/results/1_genome_to_graph/1.1_kmer_profiling/6mer"
-SCRIPT_DIR="$PROJECT_ROOT/1_genome_to_graph/1.1_kmer_profiling"
+OUTPUT_DIR="$PROJECT_ROOT/1_genome_to_graph/intermediate/kmer/6mer"
+SCRIPT_DIR="$PROJECT_ROOT/1_genome_to_graph/scripts"
 
 # Create output directory
 mkdir -p "$OUTPUT_DIR"

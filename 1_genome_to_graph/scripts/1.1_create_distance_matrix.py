@@ -17,7 +17,7 @@ import argparse
 def main():
     parser = argparse.ArgumentParser(description='Create pairwise cosine distance matrix')
     parser.add_argument('--output-dir', type=str,
-                        default='results/1_genome_to_graph/1.1_kmer_profiling/final',
+                        default='1_genome_to_graph/intermediate/kmer',
                         help='Output directory')
     parser.add_argument('--format', type=str, default='npz', choices=['npz', 'npy'],
                         help='Output format: npz (compressed) or npy (uncompressed)')
@@ -32,7 +32,7 @@ def main():
 
     # Load 6-mer matrix
     print("\n[1] Loading 6-mer matrix...")
-    matrix_path = 'results/1_genome_to_graph/1.1_kmer_profiling/6mer/6mer_matrix.npz'
+    matrix_path = '1_genome_to_graph/intermediate/kmer/6mer/6mer_matrix.npz'
     matrix = load_npz(matrix_path)
 
     print(f"Matrix shape: {matrix.shape}")
