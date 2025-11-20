@@ -63,3 +63,4 @@ notebooks/core
 *.npy
 # Intermediate data directories (not tracked in git)
 1_genome_to_graph/intermediate/
+1_genome_to_graph/graph_outputs/protein_graph/
