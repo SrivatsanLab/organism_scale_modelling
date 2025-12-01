@@ -1,9 +1,9 @@
 # 1. Genome to Graph Pipeline
 ## Subcomponents
-1.1 - K-mer profiling
-- Purpose: In lieu of a genomic LLM that can embed *full* bacterial genomes (there isn't a model that currently exists that is good for this purpose and is easy to implement), k-mer profiles will serve as attribute vectors for genome nodes. We will use 5 or 6-mer (the counts of each 5 or 6 nucleotide sequence in each genome) profiles to create node attributes for each genome in the graph. K-mer profiles capture a lot of evolutionary information about bacterial genomes. 
+1.1 - Genome-genome graph assembly
+- Purpose: Computes 5 or 6-mer spectra for genomes, computes pairwise cosine distances between these spectra, uses this to assemble a neighborhood graph.  
 - Inputs: Raw genome sequences in fasta format
-- Outputs: a vector of frequencies for each K-mer, pairwise distances between all genomes
+- Outputs: a vector of frequencies for each K-mer, pairwise distances between all genomes, neighborhood graph
 
 1.2 - Genome Parser
 - Purpose: The first step in defining gene nodes in the graph is parsing gene sequences from each genome. This component will use `prodigal` or similar software to identify protein coding regions of each genome
@@ -17,30 +17,26 @@
 
 1.4 - ESM embedding
 - Purpose: Provide a low-dimensional representation of gene sequence, structure and function for each cluster from 1.3. Clusters will define gene nodes in the graph, and their esm embedding vectors will be the node attributes
-- Inputs: Aligned protein sequences
+- Inputs: Aligned protein sequences from 1.3
 - Outputs: List of embedding vectors (one per sequence) provided by ESM model and clusters of those embeddings from a user specified clustering algorithm
 
 1.5 - Gene-gene graph assembly
-- Purpose: 
-- Inputs: 
-- Outputs: 
+- Purpose: Predict operon membership to inform gene-gene edges in the full graph
+- Inputs: Raw input genomes, protein MSA's from 1.3
+- Outputs: gene x gene adjacency matrix
 
-1.6 - Genome-genome graph assembly
-- Purpose: 
-- Inputs: 
-- Outputs: 
 
-1.7 - Full Graph Assembly
-- Purpose: Compile the full heterogeneous graph to be processed by a Torch Geometric (graph neural network library)
-- Inputs: Gene-gene graph and attributes, genome-genome graphs and attributes
-- Outputs: heterogeneous graph in pyTorch Geometric compatible format
+1.6 - Genome-gene edge computation
+- Purpose: Identify which genomes each gene should be connected to
+- Inputs: Raw input genomes, protein MSA's from 1.3
+- Outputs: matrix of genomes x genes indicating the presence or absence of each gene in each genome
 
 # 2. Masked Graph Learning
 ## Subcomponents
-2.1 - Dataset Creation Module
-- Purpose: Create genomic graphs using genome to graph pipeline and save a large compendium of these graphs
-- Inputs: User specified list of genomes to encode as graphs in a dataset
-- Outputs: A Torch Geometric Data object which specifies node features and adjacency matrices for many genomes
+2.1 - Graph Assembly
+- Purpose: Compile the full heterogeneous graph to be processed by a Torch Geometric (graph neural network library)
+- Inputs: Gene-gene adjacency matrix and attributes, genome-genome adjacency matrix and attributes, genome-gene matrix
+- Outputs: heterogeneous graph in pyTorch Geometric compatible format
 
 2.2 - Data loading module
 - Purpose: Manage data loading, preprocessing, and batching for training.
