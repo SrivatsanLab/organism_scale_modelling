@@ -59,8 +59,17 @@ core.*
 
 # Notebook outputs
 notebooks/core
-*.csv
+notebooks/*.csv
 *.npy
+
 # Intermediate data directories (not tracked in git)
 1_genome_to_graph/intermediate/
 1_genome_to_graph/graph_outputs/protein_graph/
+
+# Large CSV edge files (use .npz matrix format instead)
+**/genome_gene_edges.csv
+**/gene_gene_edges.csv
+
+# But allow important graph index files
+!1_genome_to_graph/graph_outputs/protein_graph_toy/cluster_index.csv
+!1_genome_to_graph/graph_outputs/protein_graph_toy/metadata/*.csv
