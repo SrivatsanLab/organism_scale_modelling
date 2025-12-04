@@ -43,13 +43,45 @@ components = data['components']  # Shape: (50, 1152)
 mean = data['mean']  # Shape: (1152,)
 ```
 
+### 4. gene_gene_matrix.npz
+**Gene-gene (cluster-cluster) edge matrix** from operon predictions
+- Shape: (365211, 365211) sparse CSR matrix
+- File size: 15 MB
+- Edges: Gene clusters predicted to be in operons (adjacent on genome, same strand)
+
+```python
+import scipy.sparse as sp
+matrix = sp.load_npz('gene_gene_matrix.npz')
+# matrix[i,j] = 1 if clusters i and j are predicted to be in same operon
+```
+
+### 5. genome_gene_matrix.npz
+**Genome-gene bipartite graph edge matrix**
+- Shape: (7664, 365211) sparse CSR matrix
+- File size: 35 MB
+- Edges: Which gene clusters are present in which genomes
+
+```python
+import scipy.sparse as sp
+matrix = sp.load_npz('genome_gene_matrix.npz')
+# matrix[i,j] = 1 if genome i contains gene cluster j
+```
+
+### 6. metadata/
+**Cluster metadata and documentation**
+- `cluster_metadata_simple.csv`: Parsed cluster IDs (genome, contig, gene number)
+- `README.md`: Detailed documentation on cluster naming and COG annotations
+
 ## Statistics
 
 - **Total clusters**: 365,211
+- **Total genomes**: 7,664
+- **Gene-gene edges**: ~19M (operon predictions)
+- **Genome-gene edges**: ~19M (bipartite graph)
 - **Mean cluster size**: 55.8
 - **Median cluster size**: 20
 - **Embedding dimension**: 50 (reduced from 1152)
-- **Total file size**: ~85.8 MB
+- **Total file size**: ~135 MB
 
 ## Comparison to Full Version
 
