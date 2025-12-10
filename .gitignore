@@ -67,3 +67,8 @@ notebooks/*.csv
 preprocessing/intermediate/
 preprocessing/graph_outputs/
 preprocessing/data
+
+# Model checkpoints and training outputs
+checkpoints/
+checkpoints_*/
+*.log
