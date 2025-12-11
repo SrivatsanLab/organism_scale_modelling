@@ -1,35 +1,52 @@
 # Masked Graph Learning for Bacterial Genomes
 
-Project: Masked graph learning for bacterial genomics
-Goals:
-1. Define gene nodes (mostly done)
-2. Represent genomes as graphs
-3. Implement [GraphMAE](https://arxiv.org/abs/2205.10803)
-
 ![Proposed Graph Structure](graph_concept.png)
- 
-The data:
-(https://www.ncbi.nlm.nih.gov/refseq/about/prokaryotes/)
- 
-For defining gene nodes:
-[ESM Atlas](https://esmatlas.com/)
-[ESM Cambrian](https://www.evolutionaryscale.ai/blog/esm-cambrian)
 
-## Project Structure
+Heterogeneous graph masked autoencoding for bacterial genomes, implementing [GraphMAE](https://arxiv.org/abs/2205.10803) extended to support both feature and structure reconstruction.
 
+## Quick Start
+
+Train a GraphMAE model on the genome-gene heterogeneous graph:
+
+```bash
+# Feature reconstruction (predict masked gene features)
+python scripts/train_graphmae.py \
+  --reconstruction_mode feature \
+  --mask_gene_ratio 0.3 \
+  --num_hidden 256 \
+  --num_layers 2 \
+  --max_epochs 100
+
+# Structure reconstruction (predict masked edges)
+python scripts/train_graphmae.py \
+  --reconstruction_mode structure \
+  --mask_edge_ratio 0.2 \
+  --edge_decoder_type dot \
+  --num_hidden 256 \
+  --max_epochs 100
+
+# Joint reconstruction (both features and structure)
+python scripts/train_graphmae.py \
+  --reconstruction_mode joint \
+  --mask_gene_ratio 0.3 \
+  --mask_edge_ratio 0.2 \
+  --edge_loss_weight 1.0 \
+  --num_hidden 256 \
+  --max_epochs 100
 ```
-.
-├── 1_genome_to_graph/
-│   ├── 1.3_msa/                          # MMseqs2 clustering results
-│   └── 1.4_esm_embedding_clustering/     # ESM embedding generation & analysis
-├── data/
-│   ├── all_proteins.faa                  # 30M proteins from 7,664 genomes
-│   ├── refseq_genomes/                   # Genome sequences (symlink)
-│   └── refseq_gene_annotations/          # Gene annotations (symlink)
-├── results/
-│   └── 1_genome_to_graph/
-│       ├── 1.3_msa/mmseqs_seqid_0p7/    # 70% ID clusters (30M assignments)
-│       └── 1.4_esm_embedding_clustering/ # PCA cache, UMAP, analysis
-├── docs/                                 # Documentation
-└── environment.yml                       # Conda/micromamba environment
-``
+
+See `data/README.md` for details on the graph data format and features.
+
+## Source Components
+
+**Graph Construction** (`src/GNN/`)
+- `construct_het_graph.py` - Build heterogeneous graph with genome and gene nodes
+- `construct_hom_graph.py` - Build homogeneous genome-only similarity graph
+- `graph_masker.py` - Node and edge masking functions for self-supervised training
+
+**Model Architecture**
+- `encoder.py` - Heterogeneous GNN encoder (SAGE or GAT)
+- `decoder.py` - Feature decoder for reconstructing masked node features
+- `edge_decoder.py` - Edge decoder for reconstructing masked graph structure
+- `model.py` - Complete GraphMAE model with three reconstruction modes
+- `loss.py` - Loss functions (SCE, MSE) for feature reconstruction
