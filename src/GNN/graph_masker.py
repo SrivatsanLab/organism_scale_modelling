@@ -169,3 +169,151 @@ def mask_nodes(
         kept_genome_mask=k_genome,
     )
 
+
+def mask_features(
+    data: HeteroData,
+    mask_gene_ratio: float,
+    mask_genome_ratio: float = 0.0,
+    mask_token_gene: Optional[torch.Tensor] = None,
+    mask_token_genome: Optional[torch.Tensor] = None,
+    seed: Optional[int] = None,
+):
+    """
+    Mask node features (GraphMAE-style) without removing nodes from the graph.
+    Graph structure remains intact - only features are masked with mask tokens.
+
+    Parameters
+    ----------
+    data:
+        HeteroData graph
+    mask_gene_ratio:
+        Fraction of gene nodes to mask (0.0-1.0)
+    mask_genome_ratio:
+        Fraction of genome nodes to mask (0.0-1.0)
+    mask_token_gene:
+        Learnable mask token for gene features (shape: [1, gene_feat_dim])
+        If None, uses zeros
+    mask_token_genome:
+        Learnable mask token for genome features (shape: [1, genome_feat_dim])
+        If None, uses zeros
+    seed:
+        Optional random seed for reproducibility
+
+    Returns
+    -------
+    masked_data:
+        HeteroData with same structure but masked features
+    mask_info:
+        Dictionary with masked indices and masks for each node type
+    """
+    # Clone the data to avoid modifying original
+    masked_data = data.clone()
+
+    # Sample nodes to mask
+    num_gene = data['gene'].num_nodes
+    num_genome = data['genome'].num_nodes if 'genome' in data.node_types else 0
+
+    masked_gene_idx = torch.tensor(
+        sample_mask_node_indices(num_gene, mask_gene_ratio, seed),
+        dtype=torch.long
+    )
+
+    if num_genome > 0:
+        masked_genome_idx = torch.tensor(
+            sample_mask_node_indices(num_genome, mask_genome_ratio, seed),
+            dtype=torch.long
+        )
+    else:
+        masked_genome_idx = torch.tensor([], dtype=torch.long)
+
+    # Create masks
+    gene_mask = torch.zeros(num_gene, dtype=torch.bool)
+    if len(masked_gene_idx) > 0:
+        gene_mask[masked_gene_idx] = True
+
+    genome_mask = torch.zeros(num_genome, dtype=torch.bool) if num_genome > 0 else torch.tensor([], dtype=torch.bool)
+    if len(masked_genome_idx) > 0:
+        genome_mask[masked_genome_idx] = True
+
+    # Apply mask tokens
+    if len(masked_gene_idx) > 0:
+        if mask_token_gene is not None:
+            masked_data['gene'].x[masked_gene_idx] = mask_token_gene
+        else:
+            masked_data['gene'].x[masked_gene_idx] = 0.0
+
+    if len(masked_genome_idx) > 0:
+        if mask_token_genome is not None:
+            masked_data['genome'].x[masked_genome_idx] = mask_token_genome
+        else:
+            masked_data['genome'].x[masked_genome_idx] = 0.0
+
+    return masked_data, dict(
+        masked_gene_idx=masked_gene_idx,
+        masked_genome_idx=masked_genome_idx,
+        gene_mask=gene_mask,
+        genome_mask=genome_mask,
+    )
+
+
+def mask_edges(
+    data: HeteroData,
+    mask_ratio_dict: dict,
+    seed: Optional[int] = None,
+):
+    """
+    Mask edges by removing a fraction of edges from the graph.
+    Nodes and their features remain intact.
+
+    Parameters
+    ----------
+    data:
+        HeteroData graph
+    mask_ratio_dict:
+        Dictionary mapping edge_type to mask ratio
+        Example: {('gene', 'interacts', 'gene'): 0.2, ...}
+    seed:
+        Optional random seed for reproducibility
+
+    Returns
+    -------
+    masked_data:
+        HeteroData with masked edges removed
+    mask_info:
+        Dictionary with masked edge indices for each edge type
+    """
+    # Clone the data
+    masked_data = data.clone()
+    mask_info = {}
+
+    for edge_type, mask_ratio in mask_ratio_dict.items():
+        if edge_type not in data.edge_types:
+            continue
+
+        edge_index = data[edge_type].edge_index
+        num_edges = edge_index.shape[1]
+
+        # Sample edges to mask
+        masked_edge_idx = torch.tensor(
+            sample_mask_indices(num_edges, mask_ratio, seed),
+            dtype=torch.long
+        )
+
+        # Create mask for keeping edges
+        keep_mask = torch.ones(num_edges, dtype=torch.bool)
+        if len(masked_edge_idx) > 0:
+            keep_mask[masked_edge_idx] = False
+
+        # Keep only non-masked edges
+        masked_data[edge_type].edge_index = edge_index[:, keep_mask]
+
+        # Store masked edge indices and original edges
+        mask_info[edge_type] = {
+            'masked_edge_idx': masked_edge_idx,
+            'masked_edges': edge_index[:, masked_edge_idx] if len(masked_edge_idx) > 0 else torch.tensor([[], []], dtype=torch.long),
+            'num_masked': len(masked_edge_idx),
+            'num_total': num_edges,
+        }
+
+    return masked_data, mask_info
+
