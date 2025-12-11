@@ -15,6 +15,7 @@ from tqdm import tqdm
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.GNN.construct_het_graph import construct_het_graph
+from src.GNN.graph_masker import mask_edges
 from src.GNN.model import HeteroGraphMAE
 
 
@@ -54,11 +55,23 @@ def parse_args():
 
     # Masking
     parser.add_argument('--mask_gene_ratio', type=float, default=0.3,
-                        help='Ratio of gene nodes to mask')
+                        help='Ratio of gene nodes to mask (for feature reconstruction)')
     parser.add_argument('--mask_genome_ratio', type=float, default=0.0,
-                        help='Ratio of genome nodes to mask')
+                        help='Ratio of genome nodes to mask (for feature reconstruction)')
+    parser.add_argument('--mask_edge_ratio', type=float, default=0.2,
+                        help='Ratio of edges to mask (for structure reconstruction)')
     parser.add_argument('--remask_rate', type=float, default=0.5,
                         help='Re-masking rate before decoder')
+
+    # Reconstruction mode
+    parser.add_argument('--reconstruction_mode', type=str, default='feature',
+                        choices=['feature', 'structure', 'joint'],
+                        help='Reconstruction task: feature, structure, or joint')
+    parser.add_argument('--edge_decoder_type', type=str, default='dot',
+                        choices=['dot', 'bilinear', 'mlp'],
+                        help='Edge decoder type for structure reconstruction')
+    parser.add_argument('--edge_loss_weight', type=float, default=1.0,
+                        help='Weight for edge reconstruction loss in joint mode')
 
     # Training
     parser.add_argument('--lr', type=float, default=0.001,
@@ -95,31 +108,99 @@ def train_epoch(model, data, optimizer, args, device):
     # Move data to device
     data = data.to(device)
 
-    # Sample random nodes to mask (GraphMAE-style: mask features, not nodes)
     num_genome = data['genome'].num_nodes
     num_gene = data['gene'].num_nodes
 
-    # Sample masked node indices
-    num_masked_genome = int(args.mask_genome_ratio * num_genome)
-    num_masked_gene = int(args.mask_gene_ratio * num_gene)
+    # Initialize masking variables
+    masked_genome_idx = torch.tensor([], dtype=torch.long, device=device)
+    masked_gene_idx = torch.tensor([], dtype=torch.long, device=device)
+    edge_mask_info = None
 
-    perm_genome = torch.randperm(num_genome, device=device)
-    perm_gene = torch.randperm(num_gene, device=device)
+    # Prepare graph based on reconstruction mode
+    if args.reconstruction_mode in ['feature', 'joint']:
+        # Feature masking: mask node features
+        num_masked_genome = int(args.mask_genome_ratio * num_genome)
+        num_masked_gene = int(args.mask_gene_ratio * num_gene)
 
-    masked_genome_idx = perm_genome[:num_masked_genome]
-    masked_gene_idx = perm_gene[:num_masked_gene]
+        perm_genome = torch.randperm(num_genome, device=device)
+        perm_gene = torch.randperm(num_gene, device=device)
 
-    # Create masked features (mask features, keep graph structure)
-    masked_x_dict = {
-        'genome': data['genome'].x.clone(),
-        'gene': data['gene'].x.clone(),
-    }
+        masked_genome_idx = perm_genome[:num_masked_genome]
+        masked_gene_idx = perm_gene[:num_masked_gene]
 
-    # Apply mask tokens using the model's mask_features method
-    masked_x_dict = model.mask_features(masked_x_dict, masked_genome_idx, masked_gene_idx)
+        # Create masked features (handle both tensors and sparse matrices)
+        # Clone or convert to tensor if needed
+        if hasattr(data['genome'].x, 'clone'):
+            genome_x = data['genome'].x.clone()
+        else:
+            # Convert sparse to dense tensor
+            if hasattr(data['genome'].x, 'toarray'):
+                genome_x = torch.tensor(data['genome'].x.toarray(), dtype=torch.float32, device=device)
+            else:
+                genome_x = torch.tensor(data['genome'].x, dtype=torch.float32, device=device)
 
-    # Forward pass (pass same graph, but with masked features)
-    loss, loss_dict = model(data, masked_x_dict, masked_genome_idx, masked_gene_idx)
+        if hasattr(data['gene'].x, 'clone'):
+            gene_x = data['gene'].x.clone()
+        else:
+            # Convert sparse to dense tensor
+            if hasattr(data['gene'].x, 'toarray'):
+                gene_x = torch.tensor(data['gene'].x.toarray(), dtype=torch.float32, device=device)
+            else:
+                gene_x = torch.tensor(data['gene'].x, dtype=torch.float32, device=device)
+
+        masked_x_dict = {
+            'genome': genome_x,
+            'gene': gene_x,
+        }
+        masked_x_dict = model.mask_features(masked_x_dict, masked_genome_idx, masked_gene_idx)
+    else:
+        # Structure-only mode: no feature masking
+        if hasattr(data['genome'].x, 'clone'):
+            genome_x = data['genome'].x.clone()
+        else:
+            if hasattr(data['genome'].x, 'toarray'):
+                genome_x = torch.tensor(data['genome'].x.toarray(), dtype=torch.float32, device=device)
+            else:
+                genome_x = torch.tensor(data['genome'].x, dtype=torch.float32, device=device)
+
+        if hasattr(data['gene'].x, 'clone'):
+            gene_x = data['gene'].x.clone()
+        else:
+            if hasattr(data['gene'].x, 'toarray'):
+                gene_x = torch.tensor(data['gene'].x.toarray(), dtype=torch.float32, device=device)
+            else:
+                gene_x = torch.tensor(data['gene'].x, dtype=torch.float32, device=device)
+
+        masked_x_dict = {
+            'genome': genome_x,
+            'gene': gene_x,
+        }
+
+    if args.reconstruction_mode in ['structure', 'joint']:
+        # Edge masking: remove edges from graph
+        mask_ratio_dict = {
+            ('genome', 'similarity', 'genome'): args.mask_edge_ratio,
+            ('genome', 'present', 'gene'): args.mask_edge_ratio,
+            ('gene', 'interacts', 'gene'): args.mask_edge_ratio,
+        }
+
+        # Mask edges in the graph
+        masked_graph, edge_mask_info = mask_edges(data, mask_ratio_dict, seed=None)
+
+        # Use masked graph for encoding (edges removed)
+        data_for_encoding = masked_graph
+    else:
+        # Feature-only mode: use full graph
+        data_for_encoding = data
+
+    # Forward pass
+    loss, loss_dict = model(
+        data_for_encoding,  # Graph with masked edges (if structure mode)
+        masked_x_dict,  # Masked features
+        masked_genome_idx,
+        masked_gene_idx,
+        edge_mask_info  # Info about masked edges
+    )
 
     # Backward pass
     optimizer.zero_grad()
@@ -183,19 +264,26 @@ def main():
         alpha_l=args.alpha_l,
         concat_hidden=False,
         remask_rate=args.remask_rate,
+        reconstruction_mode=args.reconstruction_mode,
+        edge_decoder_type=args.edge_decoder_type,
+        edge_loss_weight=args.edge_loss_weight,
     )
     model = model.to(device)
 
     # Count parameters
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"Model has {num_params:,} trainable parameters")
+    print(f"Reconstruction mode: {args.reconstruction_mode}")
 
     # Initialize optimizer
     optimizer = optim.Adam(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
 
     # Training loop
     print(f"\nStarting training for {args.max_epochs} epochs...")
-    print(f"Masking: {args.mask_gene_ratio:.1%} gene nodes, {args.mask_genome_ratio:.1%} genome nodes")
+    if args.reconstruction_mode in ['feature', 'joint']:
+        print(f"Feature masking: {args.mask_gene_ratio:.1%} gene nodes, {args.mask_genome_ratio:.1%} genome nodes")
+    if args.reconstruction_mode in ['structure', 'joint']:
+        print(f"Edge masking: {args.mask_edge_ratio:.1%} edges per type")
 
     best_loss = float('inf')
 
@@ -208,10 +296,19 @@ def main():
         epoch_time = time.time() - start_time
 
         # Log progress
-        print(f"Epoch {epoch:3d} | Loss: {loss:.4f} | "
-              f"Masked genes: {loss_dict['num_masked_gene']:5d} | "
-              f"Masked genomes: {loss_dict['num_masked_genome']:3d} | "
-              f"Time: {epoch_time:.2f}s")
+        log_str = f"Epoch {epoch:3d} | Loss: {loss:.4f}"
+
+        if args.reconstruction_mode == 'joint':
+            log_str += f" | Feat: {loss_dict.get('feature_loss', 0):.4f}"
+            log_str += f" | Edge: {loss_dict.get('edge_loss', 0):.4f}"
+
+        if args.reconstruction_mode in ['feature', 'joint']:
+            log_str += f" | Masked genes: {loss_dict.get('num_masked_gene', 0):5d}"
+            if loss_dict.get('num_masked_genome', 0) > 0:
+                log_str += f" | Masked genomes: {loss_dict.get('num_masked_genome', 0):3d}"
+
+        log_str += f" | Time: {epoch_time:.2f}s"
+        print(log_str)
 
         # Save checkpoint
         if epoch % args.save_every == 0:
